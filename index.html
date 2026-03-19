@@ -27,7 +27,7 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:linear-gr
 /* Sidebar */
 .sidebar{width:200px;display:flex;flex-direction:column;gap:10px}
 .sidebar h3{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px}
-.screenshot-thumb{width:180px;height:120px;border-radius:10px;cursor:grab;border:1.5px solid var(--border);overflow:hidden;transition:all .2s var(--ease);background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.screenshot-thumb{width:180px;border-radius:10px;cursor:grab;border:1.5px solid var(--border);overflow:hidden;transition:all .2s var(--ease);background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.04)}
 .screenshot-thumb:hover{transform:translateY(-2px) scale(1.02);box-shadow:0 4px 16px rgba(0,0,0,.1);border-color:var(--accent)}
 .screenshot-thumb:active{cursor:grabbing;transform:scale(.98)}
 .screenshot-thumb svg{width:100%;height:100%;display:block}
@@ -278,64 +278,14 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:linear-gr
 <body>
 <div class="page-title">
   <h1>HanYu Learn – Interactive Demo</h1>
-  <p>Drag screenshots from the left panel into the app to get started.</p>
+  <p>Drag the screenshot into the app to get started.</p>
 </div>
 <div class="page-wrapper">
   <!-- Left Sidebar -->
   <div class="sidebar">
-    <h3>Screenshots</h3>
+    <h3>Sample</h3>
     <div class="screenshot-thumb" draggable="true" data-id="1">
-      <svg viewBox="0 0 180 120" xmlns="http://www.w3.org/2000/svg">
-        <rect width="180" height="120" fill="#FFF8E1"/>
-        <rect x="8" y="8" width="164" height="20" rx="4" fill="#FF8F00" opacity=".15"/>
-        <text x="90" y="22" text-anchor="middle" font-size="12" fill="#E65100" font-weight="600">菜单 Menu</text>
-        <text x="20" y="48" font-size="16" fill="#333">水 ............ ¥5</text>
-        <text x="20" y="70" font-size="16" fill="#333">饭 ............ ¥12</text>
-        <text x="20" y="92" font-size="16" fill="#333">喝茶 ........ ¥8</text>
-        <rect x="8" y="102" width="164" height="12" rx="3" fill="#FF8F00" opacity=".1"/>
-      </svg>
-    </div>
-    <div class="screenshot-thumb" draggable="true" data-id="2">
-      <svg viewBox="0 0 180 120" xmlns="http://www.w3.org/2000/svg">
-        <rect width="180" height="120" fill="#E3F2FD"/>
-        <rect x="30" y="10" width="120" height="40" rx="6" fill="#1565C0" opacity=".12"/>
-        <text x="90" y="36" text-anchor="middle" font-size="18" fill="#0D47A1" font-weight="700">学校</text>
-        <line x1="20" y1="60" x2="160" y2="60" stroke="#90CAF9" stroke-width="1"/>
-        <text x="90" y="80" text-anchor="middle" font-size="14" fill="#1565C0">医生诊所 →</text>
-        <rect x="60" y="90" width="60" height="22" rx="4" fill="#1565C0" opacity=".08"/>
-        <text x="90" y="105" text-anchor="middle" font-size="11" fill="#1565C0">大学路</text>
-      </svg>
-    </div>
-    <div class="screenshot-thumb" draggable="true" data-id="3">
-      <svg viewBox="0 0 180 120" xmlns="http://www.w3.org/2000/svg">
-        <rect width="180" height="120" fill="#FFFDE7"/>
-        <rect x="10" y="8" width="160" height="104" rx="4" fill="#fff" stroke="#E0E0E0"/>
-        <text x="90" y="30" text-anchor="middle" font-size="13" fill="#333">朋友是很重要的。</text>
-        <text x="90" y="52" text-anchor="middle" font-size="13" fill="#333">老师说我们要高兴。</text>
-        <text x="90" y="74" text-anchor="middle" font-size="13" fill="#333">工作让人快乐。</text>
-        <text x="90" y="96" text-anchor="middle" font-size="11" fill="#999">— 第三章</text>
-      </svg>
-    </div>
-    <div class="screenshot-thumb" draggable="true" data-id="4">
-      <svg viewBox="0 0 180 120" xmlns="http://www.w3.org/2000/svg">
-        <rect width="180" height="120" fill="#F3E5F5"/>
-        <rect x="10" y="10" width="120" height="28" rx="14" fill="#CE93D8"/>
-        <text x="70" y="29" text-anchor="middle" font-size="13" fill="#fff">你好！😊</text>
-        <rect x="50" y="46" width="120" height="28" rx="14" fill="#E1BEE7"/>
-        <text x="110" y="65" text-anchor="middle" font-size="13" fill="#4A148C">你很漂亮</text>
-        <rect x="10" y="82" width="110" height="28" rx="14" fill="#CE93D8"/>
-        <text x="65" y="101" text-anchor="middle" font-size="13" fill="#fff">你说中文吗？</text>
-      </svg>
-    </div>
-    <div class="screenshot-thumb" draggable="true" data-id="5">
-      <svg viewBox="0 0 180 120" xmlns="http://www.w3.org/2000/svg">
-        <rect width="180" height="120" fill="#E8F5E9"/>
-        <rect x="20" y="12" width="140" height="36" rx="6" fill="#43A047" opacity=".15"/>
-        <text x="90" y="36" text-anchor="middle" font-size="20" fill="#2E7D32" font-weight="700">买书</text>
-        <text x="90" y="68" text-anchor="middle" font-size="14" fill="#333">大减价！</text>
-        <rect x="40" y="80" width="100" height="28" rx="14" fill="#43A047"/>
-        <text x="90" y="99" text-anchor="middle" font-size="13" fill="#fff">走进来看看</text>
-      </svg>
+      <img src="duolingo.png" alt="Duolingo screenshot" style="width:100%;height:auto;display:block;border-radius:8px;pointer-events:none"/>
     </div>
   </div>
 
@@ -397,7 +347,6 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:linear-gr
           <div class="fc-screen" id="fcScreen">
             <div class="fc-start" id="fcStart">
               <h2>Ready to practice?</h2>
-              <p id="fcCount">10 cards</p>
               <div class="fc-options">
                 <div class="chip active" data-fc-mode="random">Randomized</div>
                 <div class="chip" data-fc-mode="recent">Recently added</div>
@@ -505,11 +454,7 @@ const WORDS = [
 
 // Screenshot to word mapping
 const SCREENSHOT_WORDS = {
-  1: [1,2,10,9],      // menu: 水,喝,饭,吃
-  2: [6,3,7,5],        // signs: 学校,医生,大,学生
-  3: [12,14,15,13],    // book: 朋友,老师,高兴,工作
-  4: [11,16,18,8],     // chat: 好,漂亮,说,小
-  5: [20,17,7,19],     // store: 买,书,大,走
+  1: [15,11,12,18],   // duolingo: 高兴,好,朋友,说
 };
 
 // ==================== HSK POS LOOKUP ====================
@@ -672,16 +617,19 @@ document.querySelectorAll('.screenshot-thumb').forEach(thumb => {
   });
 });
 
-// ---- Mock demo path (side-panel thumbnails) ----
-function processScreenshot(screenshotId) {
-  showUploadLoading();
-  uploadedScreenshots.push(screenshotId);
-  setTimeout(() => {
-    resetUploadZone();
-    const wordIds = SCREENSHOT_WORDS[screenshotId] || [];
-    const words = wordIds.map(id => getWord(id));
-    showWordSelection(words);
-  }, 1800);
+// ---- Demo thumbnail path — fetch image and run real OCR ----
+async function processScreenshot(screenshotId) {
+  const srcMap = { 1: 'duolingo.png' };
+  const src = srcMap[screenshotId];
+  if (!src) return;
+  try {
+    const resp = await fetch(src);
+    const blob = await resp.blob();
+    const file = new File([blob], src, { type: blob.type });
+    await processImageQueue([file]);
+  } catch(e) {
+    showToast('Could not load image');
+  }
 }
 
 // ---- Real OCR path (Tesseract.js + CEDICT) ----
@@ -1243,7 +1191,7 @@ function getFilteredVocab() {
 function renderVocabList() {
   const list = getFilteredVocab();
   if (list.length === 0) {
-    vocabList.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">No words yet. Upload screenshots to add vocabulary!</div>';
+    vocabList.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text2);font-size:14px;font-weight:400">Upload screenshots to add vocabulary</div>';
     return;
   }
   vocabList.innerHTML = list.map(w => {
@@ -1342,10 +1290,7 @@ document.querySelectorAll('.fc-options .chip').forEach(chip => {
   });
 });
 
-function updateFcCount() {
-  const deck = buildDeck();
-  document.getElementById('fcCount').textContent = `${deck.length} cards`;
-}
+function updateFcCount() {}
 
 function buildDeck() {
   let pool = [...vocab];
