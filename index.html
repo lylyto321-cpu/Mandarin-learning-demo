@@ -355,7 +355,7 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:linear-gr
         <!-- Upload Screen -->
         <div class="app-screen" id="screenUpload">
           <div class="top-bar"><div class="actions"><button class="icon-btn" title="Profile"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></button></div></div>
-          <input type="file" id="fileInput" accept="image/*" style="display:none">
+          <input type="file" id="fileInput" accept="image/*" multiple style="display:none">
           <div class="upload-zone" id="uploadZone">
             <div class="upload-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
             <p>Upload images to extract new vocabularies</p>
@@ -646,8 +646,8 @@ function handleDrop(e) {
   uploadZone.classList.remove('drag-over');
   // Real image file drop
   if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-    const file = e.dataTransfer.files[0];
-    if (file.type.startsWith('image/')) { processImageFile(file); return; }
+    const imgs = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+    if (imgs.length) { processImageQueue(imgs); return; }
   }
   // Demo thumbnail drag (mock path)
   const id = e.dataTransfer.getData('text/plain');
@@ -660,8 +660,8 @@ uploadZone.addEventListener('drop', handleDrop);
 uploadZone.addEventListener('click', () => fileInput.click());
 
 fileInput.addEventListener('change', () => {
-  if (fileInput.files && fileInput.files[0]) {
-    processImageFile(fileInput.files[0]);
+  if (fileInput.files && fileInput.files.length) {
+    processImageQueue(Array.from(fileInput.files));
     fileInput.value = '';
   }
 });
@@ -687,35 +687,64 @@ function processScreenshot(screenshotId) {
 // ---- Real OCR path (Tesseract.js + CEDICT) ----
 const wordCache = {};
 
-async function processImageFile(file) {
+let _imgQueue = [], _imgQueueIdx = 0, _collectedWords = [];
+
+async function processImageQueue(files) {
+  _imgQueue = files;
+  _imgQueueIdx = 0;
+  _collectedWords = [];
+  await _processNext();
+}
+
+async function _processNext() {
+  if (_imgQueueIdx >= _imgQueue.length) {
+    resetUploadZone();
+    if (_collectedWords.length) showWordSelection(_collectedWords);
+    else showToast('No Chinese words found');
+    return;
+  }
+  const file = _imgQueue[_imgQueueIdx];
+  const total = _imgQueue.length;
+  const current = _imgQueueIdx + 1;
   showUploadLoading();
   try {
     const { text, ocrWords } = await runTesseractOCR(file);
-    // Filter to boxes that contain Chinese characters
     const chineseBoxes = (ocrWords || []).filter(w =>
       /[\u4e00-\u9fff]/.test(w.text) && w.confidence > 25
     );
     if (chineseBoxes.length === 0) {
-      resetUploadZone();
-      showToast('No Chinese words found in image');
+      if (total > 1) showToast(`Image ${current}/${total}: no Chinese words found`);
+      else { resetUploadZone(); showToast('No Chinese words found in image'); return; }
+      _imgQueueIdx++;
+      await _processNext();
       return;
     }
-    // More than 1 word → show annotation step
-    if (chineseBoxes.length > 1) {
-      uploadZone.style.display = 'none';
-      showImageAnnotation(file, chineseBoxes);
-    } else {
-      // Single word — skip straight to lookup
+    if (chineseBoxes.length === 1) {
+      // Auto-extract single word
       setProcessingText('Looking up vocabulary…');
       const words = await extractVocabFromText(text);
+      _collectedWords.push(...words);
+      if (total > 1) showToast(`Image ${current}/${total}: auto-extracted`);
+      _imgQueueIdx++;
+      await _processNext();
+    } else {
+      // Multiple words — show annotation
       resetUploadZone();
-      if (!words.length) { showToast('No Chinese words found'); return; }
-      showWordSelection(words);
+      uploadZone.style.display = 'none';
+      showImageAnnotation(file, chineseBoxes, current, total, async (selectedWords) => {
+        _collectedWords.push(...selectedWords);
+        _imgQueueIdx++;
+        await _processNext();
+      });
     }
   } catch (err) {
     resetUploadZone();
     showToast('OCR failed: ' + (err.message || 'unknown error'));
   }
+}
+
+async function processImageFile(file) {
+  await processImageQueue([file]);
 }
 
 function setProcessingText(msg) {
@@ -736,21 +765,23 @@ async function runTesseractOCR(file) {
   return { text: data.text, ocrWords: data.words };
 }
 
-function showImageAnnotation(file, ocrWords) {
+function showImageAnnotation(file, ocrWords, current, total, onConfirm) {
   const annotDiv = document.getElementById('imageAnnotation');
   annotDiv.style.display = 'block';
   const imageURL = URL.createObjectURL(file);
   const selected = new Set();
+  const progressLabel = (total > 1) ? `<span style="font-size:11px;color:var(--text3);margin-left:8px">${current} / ${total}</span>` : '';
+  const btnLabel = (total > 1 && current < total) ? 'Next →' : 'Continue →';
 
   annotDiv.innerHTML = `
     <div class="annotation-header">
-      <span class="annotation-title">Draw circles around words to select them</span>
+      <span class="annotation-title">Circle the word you want to add${progressLabel}</span>
     </div>
 
     <div class="annotation-canvas-wrap" id="annotCanvasWrap" style="display:none"><canvas id="annotCanvas"></canvas></div>
     <div class="annotation-actions">
       <button class="btn btn-outline" id="btnAnnotClear">Clear</button>
-      <button class="btn btn-primary" id="btnAnnotConfirm" disabled>Continue →</button>
+      <button class="btn btn-primary" id="btnAnnotConfirm" disabled>${btnLabel}</button>
     </div>
   `;
 
@@ -876,6 +907,7 @@ function showImageAnnotation(file, ocrWords) {
         annotDiv.style.display = 'none'; annotDiv.innerHTML = '';
         uploadZone.style.display = '';
         URL.revokeObjectURL(imageURL);
+        if (onConfirm) { onConfirm(vocabWords); return; }
         if (!vocabWords.length) { showToast('No words found in dictionary'); return; }
         showWordSelection(vocabWords);
       } catch {
