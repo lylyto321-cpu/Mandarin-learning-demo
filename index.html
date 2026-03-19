@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HanYu Learn – Interactive Demo</title>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -69,6 +70,16 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:linear-gr
 .upload-zone p{color:var(--text2);font-size:14px;font-weight:400}
 .upload-zone.processing .upload-icon{display:none}
 /* Word selection after OCR */
+/* Image annotation */
+.image-annotation{padding:14px 16px;overflow-y:auto}
+.annotation-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px}
+.annotation-title{font-size:14px;font-weight:600;color:var(--text1)}
+.annotation-count{font-size:12px;color:var(--accent-dark);font-weight:600}
+.annotation-sub{font-size:12px;color:var(--text3);margin-bottom:10px}
+.annotation-canvas-wrap{border-radius:12px;overflow:hidden;background:#111;line-height:0}
+.annotation-canvas-wrap canvas{display:block;width:100%;height:auto;cursor:crosshair;touch-action:none}
+.annotation-actions{display:flex;align-items:center;justify-content:space-between;margin-top:12px;gap:8px}
+
 .word-select{padding:20px}
 .word-select h4{font-size:14px;font-weight:600;margin-bottom:4px}
 .word-select p{font-size:12px;color:var(--text2);margin-bottom:14px}
@@ -104,14 +115,15 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:linear-gr
 .chip:hover{background:var(--accent-light);border-color:rgba(13,148,136,.3)}
 .chip.active:hover{background:var(--accent-dark)}
 
-.vocab-list{padding:8px 20px 20px}
-.vocab-card{background:#fff;border-radius:var(--radius);padding:16px;margin-bottom:10px;box-shadow:0 1px 2px rgba(0,0,0,.04);border:1px solid rgba(0,0,0,.04);cursor:pointer;transition:all .2s var(--ease)}
-.vocab-card:hover{box-shadow:var(--shadow);transform:translateY(-1px)}
-.vocab-card-header{display:flex;align-items:center;gap:12px}
-.vocab-chinese{font-family:'Noto Sans SC','Inter',sans-serif;font-size:28px;font-weight:700;line-height:1.2;color:var(--text)}
-.vocab-info{flex:1}
-.vocab-pinyin{font-size:13px;color:var(--text2);font-weight:400}
-.vocab-english{font-size:13px;color:var(--text);margin-top:2px;font-weight:500}
+.vocab-list{padding:0;background:#fff;border-radius:var(--radius);margin:0 16px 16px;box-shadow:0 1px 3px rgba(0,0,0,.05);border:1px solid var(--border);overflow:hidden}
+.vocab-card{background:transparent;border-radius:0;padding:10px 14px;margin-bottom:0;box-shadow:none;border:none;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s var(--ease)}
+.vocab-card:last-child{border-bottom:none}
+.vocab-card:hover{background:var(--accent-light);transform:none;box-shadow:none}
+.vocab-card-header{display:flex;align-items:center;gap:20px}
+.vocab-chinese{font-family:'Noto Sans SC','Inter',sans-serif;font-size:20px;font-weight:700;line-height:1;color:var(--accent-dark);background:var(--accent-light);border-radius:10px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.vocab-info{flex:1;min-width:0;padding-left:16px}
+.vocab-pinyin{font-size:11px;color:var(--accent);font-weight:500;letter-spacing:.2px}
+.vocab-english{font-size:13px;color:var(--text);font-weight:500;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .vocab-card-meta{display:flex;align-items:center;gap:8px;margin-top:4px}
 .pos-chip{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;letter-spacing:.3px}
 .pos-noun{background:#DBEAFE;color:#1D4ED8}
@@ -119,9 +131,9 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:linear-gr
 .pos-adj{background:#F3E8FF;color:#7C3AED}
 .pos-nv{background:var(--accent-light);color:var(--accent-dark)}
 .wrong-badge{font-size:11px;color:#EF4444;font-weight:600}
-.card-actions{display:flex;flex-direction:column;align-items:center;gap:4px}
-.star-btn,.audio-btn{width:34px;height:34px;border:none;background:transparent;border-radius:10px;cursor:pointer;font-size:17px;transition:all .15s var(--ease);display:flex;align-items:center;justify-content:center;color:var(--text3)}
-.star-btn:hover,.audio-btn:hover{background:rgba(0,0,0,.04)}
+.card-actions{display:flex;align-items:center;gap:2px;flex-shrink:0}
+.star-btn,.audio-btn{width:32px;height:32px;border:1px solid var(--border);background:#fff;border-radius:50%;cursor:pointer;transition:all .15s var(--ease);display:flex;align-items:center;justify-content:center;color:var(--text2)}
+.star-btn:hover,.audio-btn:hover{background:var(--accent-light);border-color:var(--accent);color:var(--accent)}
 .star-btn.starred{color:#F59E0B}
 
 /* Expanded card detail */
@@ -133,6 +145,9 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:linear-gr
 .example-zh{font-family:'Noto Sans SC','Inter',sans-serif;font-size:15px;font-weight:500}
 .example-py{font-size:12px;color:var(--text2);margin-top:2px}
 .example-en{font-size:12px;color:var(--text2);font-style:italic;margin-top:2px}
+.def-example{margin-top:5px;padding:5px 8px;border-left:2px solid var(--border);margin-left:2px}
+.def-ex-zh{font-family:'Noto Sans SC','Inter',sans-serif;font-size:13px;font-weight:500;color:var(--text1);display:block}
+.def-ex-en{font-size:11.5px;color:var(--text2);font-style:italic;display:block;margin-top:1px}
 .related-section{margin-top:12px}
 .related-section h5{font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;font-weight:600}
 .related-chips{display:flex;gap:6px;flex-wrap:wrap}
@@ -170,27 +185,34 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:linear-gr
 .fc-card-container{width:100%;max-width:320px;height:320px;perspective:1200px;margin:0 auto}
 .fc-card{width:100%;height:100%;position:relative;transition:transform .55s var(--ease);transform-style:preserve-3d}
 .fc-card.flipped{transform:rotateY(180deg)}
-.fc-face{position:absolute;width:100%;height:100%;backface-visibility:hidden;border-radius:20px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.05),0 4px 20px rgba(0,0,0,.06);border:1px solid rgba(0,0,0,.04);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+.fc-face{position:absolute;width:100%;height:100%;backface-visibility:hidden;border-radius:20px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.05),0 4px 20px rgba(0,0,0,.06);border:1px solid rgba(0,0,0,.04);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;overflow:hidden}
 .fc-back{transform:rotateY(180deg)}
 .fc-front .fc-word{font-family:'Noto Sans SC','Inter',sans-serif;font-size:52px;font-weight:700;color:var(--text)}
 .fc-front .audio-btn{margin-top:14px;color:var(--accent)}
-.fc-back .fc-pinyin{font-size:18px;color:var(--text2);font-weight:400}
-.fc-back .fc-meaning{font-size:18px;margin-top:8px;font-weight:600}
-.fc-back .fc-pos{margin-top:6px}
-.fc-back .fc-example{font-size:12px;color:var(--text2);margin-top:14px;text-align:center;padding:10px 12px;background:var(--bg);border-radius:10px;width:100%;line-height:1.5}
-.fc-result-banner{padding:8px 16px;border-radius:10px;font-size:13px;font-weight:600;margin-top:12px;width:100%;text-align:center}
-.fc-result-correct{background:var(--accent-light);color:var(--accent-dark)}
-.fc-result-wrong{background:var(--orange-light);color:#B45309}
+.fc-pinyin-row{display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:4px}
+.fc-zh-answer{font-family:'Noto Sans SC','Inter',sans-serif;font-size:44px;font-weight:700;color:var(--text);margin-bottom:2px}
+.fc-back .fc-pinyin{font-size:17px;color:var(--text3);font-weight:400;letter-spacing:.01em}
+.fc-back .fc-meanings{font-size:12px;color:var(--text2);text-align:center;margin-top:8px;line-height:1.75;width:100%}
+.fc-back .fc-meanings .def-num{color:var(--accent);font-weight:600;margin-right:3px}
+.fc-back .fc-pos{margin-top:4px}
+.fc-back .fc-example{font-size:11px;color:var(--text2);margin-top:8px;padding:8px 12px;background:var(--bg);border-radius:10px;width:100%;line-height:1.5}
+.fc-ex-zh{color:var(--text2);margin-bottom:2px}
+.fc-ex-en{color:var(--text3);font-style:italic}
+.fc-result-banner{position:absolute;top:12px;right:12px;width:28px;height:28px;border-radius:50%;display:none;align-items:center;justify-content:center;flex-shrink:0}
+#fcCard[data-mode="en"] .fc-front .fc-word{font-family:'Inter',sans-serif;font-size:22px;font-weight:600;line-height:1.4}
+#fcCard[data-mode="en"] .fc-front .audio-btn{display:none}
+.fc-result-correct{display:flex;background:rgba(13,148,136,.15);color:var(--accent-dark)}
+.fc-result-wrong{display:flex;background:rgba(239,68,68,.12);color:#DC2626}
 
-.fc-nav{display:flex;justify-content:space-between;align-items:center;width:100%;margin-top:16px}
+.fc-nav{display:flex;justify-content:center;align-items:center;gap:16px;width:100%;margin-top:16px}
 .fc-nav-btn{width:38px;height:38px;border:1.5px solid var(--border);background:#fff;border-radius:12px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .2s var(--ease)}
 .fc-nav-btn:hover:not(:disabled){background:var(--accent-light);border-color:var(--accent)}
 .fc-nav-btn:disabled{opacity:.25;cursor:not-allowed}
 .fc-nav-counter{font-size:12px;color:var(--text3);font-weight:500}
-.fc-buttons{display:flex;gap:12px;margin-top:16px}
-.btn-correct{background:var(--accent);color:#fff;padding:12px 28px;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s var(--ease);font-family:'Inter',sans-serif;box-shadow:0 2px 8px rgba(13,148,136,.2)}
+.fc-buttons{display:flex;gap:12px;margin-top:16px;justify-content:center}
+.btn-correct{background:var(--accent);color:#fff;padding:11px 24px;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s var(--ease);font-family:'Inter',sans-serif;box-shadow:0 2px 8px rgba(13,148,136,.2);display:inline-flex;align-items:center;gap:7px}
 .btn-correct:hover{background:var(--accent-dark);transform:translateY(-1px)}
-.btn-pass{background:var(--orange);color:#fff;padding:12px 28px;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s var(--ease);font-family:'Inter',sans-serif;box-shadow:0 2px 8px rgba(245,158,11,.2)}
+.btn-pass{background:var(--orange);color:#fff;padding:11px 24px;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s var(--ease);font-family:'Inter',sans-serif;box-shadow:0 2px 8px rgba(245,158,11,.2);display:inline-flex;align-items:center;gap:7px}
 .btn-pass:hover{background:#D97706;transform:translateY(-1px)}
 .btn-next{background:var(--accent);color:#fff;padding:12px 28px;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;display:none;transition:all .2s var(--ease);font-family:'Inter',sans-serif;box-shadow:0 2px 8px rgba(13,148,136,.2)}
 .btn-next:hover{background:var(--accent-dark);transform:translateY(-1px)}
@@ -212,13 +234,45 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:linear-gr
 /* Selection */
 ::selection{background:rgba(13,148,136,.15);color:var(--text)}
 
+/* Meaning toggle */
+.vocab-list.meaning-hidden .vocab-english,
+.vocab-list.meaning-hidden .vocab-pinyin{visibility:hidden}
+.meaning-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:4px 20px 10px}
+.meaning-toggle-label{font-size:12px;color:var(--text2);font-weight:500}
+.toggle-switch{position:relative;display:inline-flex;align-items:center;cursor:pointer}
+.toggle-switch input{position:absolute;opacity:0;width:0;height:0}
+.toggle-track{width:36px;height:20px;background:var(--border);border-radius:10px;transition:background .2s var(--ease);position:relative;display:block}
+.toggle-thumb{position:absolute;top:2px;left:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform .2s var(--ease);box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle-switch input:checked ~ .toggle-track{background:var(--accent)}
+.toggle-switch input:checked ~ .toggle-track .toggle-thumb{transform:translateX(16px)}
+
+/* Dictionary section */
+.dict-section{margin-bottom:14px}
+.dict-loading{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text3);padding:6px 0}
+.dict-spinner{width:13px;height:13px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.dict-entry{margin-bottom:12px}
+.dict-pos-badge{font-size:10px;font-weight:600;color:var(--accent-dark);background:var(--accent-light);display:inline-block;padding:2px 8px;border-radius:8px;margin-bottom:6px}
+.dict-def{font-size:12px;color:var(--text);padding:3px 0 3px 0;line-height:1.6;display:flex;gap:6px;align-items:baseline}
+.dict-def-num{color:var(--text3);font-size:11px;font-weight:600;flex-shrink:0;min-width:14px}
+.dict-def-pos{font-size:9px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;padding:1px 5px;border-radius:4px;flex-shrink:0;margin-top:1px}
+.dict-def-pos.pos-verb,.dict-def-pos.pos-v{background:#EDE9FE;color:#6D28D9}
+.dict-def-pos.pos-noun,.dict-def-pos.pos-n{background:#FEF3C7;color:#92400E}
+.dict-def-pos.pos-adj{background:#DBEAFE;color:#1E40AF}
+.dict-def-pos.pos-adv{background:#FCE7F3;color:#9D174D}
+.dict-def-pos.pos-mw{background:#D1FAE5;color:#065F46}
+.dict-def-pos.pos-pron{background:#FECACA;color:#991B1B}
+.dict-def-pos.pos-prep{background:#E0F2FE;color:#0369A1}
+.dict-def-pos.pos-conj{background:#FEF9C3;color:#854D0E}
+.dict-def-pos.pos-part{background:#F0FDF4;color:#166534}
+.dict-def-pos.pos-num{background:#FFF7ED;color:#9A3412}
+.dict-def-pos.pos-inter{background:#FDF4FF;color:#7E22CE}
+.dict-fallback{font-size:13px;color:var(--text2);padding:2px 0}
+.dict-divider{height:1px;background:var(--border);margin:12px 0}
+
 /* Fade in animation */
-@keyframes fadeInUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-.vocab-card{animation:fadeInUp .3s var(--ease) both}
-.vocab-card:nth-child(2){animation-delay:.03s}
-.vocab-card:nth-child(3){animation-delay:.06s}
-.vocab-card:nth-child(4){animation-delay:.09s}
-.vocab-card:nth-child(5){animation-delay:.12s}
+@keyframes fadeInUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.vocab-list{animation:fadeInUp .2s var(--ease) both}
 </style>
 </head>
 <body>
@@ -301,11 +355,13 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:linear-gr
         <!-- Upload Screen -->
         <div class="app-screen" id="screenUpload">
           <div class="top-bar">Upload Screenshots</div>
+          <input type="file" id="fileInput" accept="image/*" style="display:none">
           <div class="upload-zone" id="uploadZone">
             <div class="upload-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
             <p>Drag screenshots here</p>
             <p style="font-size:12px;color:var(--text3)">Drop images to extract vocabulary</p>
           </div>
+          <div class="image-annotation" id="imageAnnotation" style="display:none"></div>
           <div class="word-select" id="wordSelect" style="display:none"></div>
         </div>
 
@@ -325,12 +381,19 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:linear-gr
             <div class="chip" data-sort="wrong">Most Wrong</div>
             <div class="chip" data-filter="starred">⭐ Starred</div>
           </div>
+          <div class="meaning-toggle-row">
+            <span class="meaning-toggle-label">Show meaning</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="meaningToggleInput" checked>
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            </label>
+          </div>
           <div class="vocab-list" id="vocabList"></div>
         </div>
 
         <!-- Flashcard Screen -->
         <div class="app-screen hidden" id="screenFlash">
-          <div class="top-bar">Flashcard Practice</div>
+          <div class="top-bar">Flashcard Practice<div class="actions"><button class="icon-btn" id="fcCloseBtn" title="Exit session" style="display:none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div></div>
           <div class="fc-screen" id="fcScreen">
             <div class="fc-start" id="fcStart">
               <h2>Ready to practice?</h2>
@@ -355,9 +418,12 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:linear-gr
                     <button class="audio-btn" id="fcAudio"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg></button>
                   </div>
                   <div class="fc-face fc-back">
-                    <div class="fc-pinyin" id="fcPinyin"></div>
-                    <button class="audio-btn" id="fcAudioBack" style="margin:4px 0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg></button>
-                    <div class="fc-meaning" id="fcMeaning"></div>
+                    <div class="fc-zh-answer" id="fcZhAnswer"></div>
+                    <div class="fc-pinyin-row">
+                      <button class="audio-btn" id="fcAudioBack"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg></button>
+                      <div class="fc-pinyin" id="fcPinyin"></div>
+                    </div>
+                    <div class="fc-meanings" id="fcMeanings"></div>
                     <div class="fc-pos" id="fcPos"></div>
                     <div class="fc-example" id="fcExample"></div>
                     <div class="fc-result-banner" id="fcBanner"></div>
@@ -370,9 +436,8 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:linear-gr
                 <button class="fc-nav-btn" id="btnSkipNext" title="Next card">→</button>
               </div>
               <div class="fc-buttons" id="fcBtns">
-                <button class="btn-correct" id="btnKnow">I Know It ✓</button>
-                <button class="btn-pass" id="btnPass">Pass ✗</button>
-                <button class="btn-next" id="btnNext">Next →</button>
+                <button class="btn-correct" id="btnKnow"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Got it</button>
+                <button class="btn-pass" id="btnPass"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.8"/></svg>Pass</button>
               </div>
             </div>
             <div class="fc-results" id="fcResults" style="display:none"></div>
@@ -446,6 +511,13 @@ const SCREENSHOT_WORDS = {
   4: [11,16,18,8],     // chat: 好,漂亮,说,小
   5: [20,17,7,19],     // store: 买,书,大,走
 };
+
+// ==================== HSK POS LOOKUP ====================
+// Covers HSK 1-4 (~1500 words). Codes: n=noun v=verb adj=adjective adv=adverb
+// mw=measure word pron=pronoun prep=preposition conj=conjunction part=particle num=numeral inter=interjection
+const HSK_POS = {"爱":"v","八":"num","爸爸":"n","杯子":"n","本":"mw","不":"adv","菜":"n","茶":"n","吃":"v","出租车":"n","大":"adj","的":"part","点":"mw","电脑":"n","电视":"n","电影":"n","东西":"n","都":"adv","读":"v","多":"adj","多少":"pron","儿子":"n","二":"num","饭":"n","饭店":"n","飞机":"n","分钟":"mw","高兴":"adj","个":"mw","工作":"n","狗":"n","汉语":"n","好":"adj","喝":"v","和":"conj","很":"adv","后面":"n","回":"v","会":"v","几":"pron","家":"n","叫":"v","今天":"n","九":"num","开":"v","看":"v","看见":"v","块":"mw","来":"v","老师":"n","了":"part","累":"adj","里":"n","两":"num","零":"num","六":"num","妈妈":"n","吗":"part","买":"v","猫":"n","没有":"v","米饭":"n","名字":"n","明天":"n","哪":"pron","哪儿":"pron","那":"pron","呢":"part","能":"v","你":"pron","年":"mw","女儿":"n","朋友":"n","漂亮":"adj","苹果":"n","七":"num","钱":"n","前面":"n","请":"v","去":"v","热":"adj","人":"n","认识":"v","三":"num","商店":"n","上":"prep","上午":"n","少":"adj","谁":"pron","什么":"pron","十":"num","时候":"n","是":"v","书":"n","水":"n","水果":"n","睡觉":"v","说":"v","四":"num","岁":"mw","他":"pron","她":"pron","太":"adv","天气":"n","听":"v","同学":"n","喂":"inter","我":"pron","我们":"pron","五":"num","喜欢":"v","下":"prep","下午":"n","下雨":"v","先生":"n","现在":"adv","想":"v","小":"adj","小姐":"n","些":"mw","写":"v","谢谢":"inter","星期":"n","学生":"n","学习":"v","学校":"n","一":"num","衣服":"n","医生":"n","医院":"n","椅子":"n","有":"v","月":"mw","再见":"inter","在":"prep","怎么":"adv","怎么样":"pron","这":"pron","中国":"n","中午":"n","住":"v","桌子":"n","字":"n","昨天":"n","坐":"v","做":"v","啊":"part","吧":"part","白":"adj","百":"num","帮助":"v","报纸":"n","比":"prep","别":"adv","宾馆":"n","长":"adj","唱歌":"v","出":"v","穿":"v","次":"mw","从":"prep","错":"adj","打":"v","大家":"pron","到":"v","得":"part","等":"v","地方":"n","弟弟":"n","懂":"v","对":"adj","房间":"n","非常":"adv","服务员":"n","告诉":"v","哥哥":"n","给":"v","公共汽车":"n","公司":"n","贵":"adj","过":"part","还":"adv","孩子":"n","好吃":"adj","黑":"adj","红":"adj","火车":"n","机场":"n","鸡蛋":"n","件":"mw","教室":"n","姐姐":"n","介绍":"v","进":"v","近":"adj","就":"adv","觉得":"v","开始":"v","考试":"n","可能":"adv","可以":"v","课":"n","快":"adj","快乐":"adj","了解":"v","离":"prep","留学":"v","路":"n","旅游":"v","卖":"v","慢":"adj","忙":"adj","每":"pron","门":"n","面包":"n","明白":"v","拿":"v","男":"adj","您":"pron","牛奶":"n","努力":"adj","跑步":"v","便宜":"adj","票":"n","妻子":"n","起床":"v","千":"num","铅笔":"n","让":"v","日":"mw","肉":"n","如果":"conj","伞":"n","上班":"v","身体":"n","生病":"v","生日":"n","时间":"n","事情":"n","手表":"n","手机":"n","说话":"v","送":"v","虽然":"conj","它":"pron","踢足球":"v","题":"n","跳舞":"v","玩":"v","完":"v","晚上":"n","位":"mw","问":"v","问题":"n","西瓜":"n","洗":"v","小时":"mw","笑":"v","新":"adj","姓":"n","需要":"v","要":"v","也":"adv","一起":"adv","已经":"adv","因为":"conj","游泳":"v","有意思":"adj","鱼":"n","远":"adj","运动":"n","再":"adv","张":"mw","丈夫":"n","找":"v","着":"part","正在":"adv","知道":"v","只":"adv","准备":"v","自行车":"n","走":"v","最":"adv","作业":"n","阿姨":"n","矮":"adj","爱好":"n","安静":"adj","把":"prep","班":"n","搬":"v","办法":"n","办公室":"n","帮":"v","包":"n","饱":"adj","被":"prep","鼻子":"n","比较":"adv","比赛":"n","必须":"adv","变化":"n","别人":"pron","冰箱":"n","不但":"conj","菜单":"n","参加":"v","草":"n","层":"mw","差":"adj","超市":"n","衬衫":"n","城市":"n","成绩":"n","迟到":"v","除了":"prep","春":"n","打扫":"v","打算":"v","大概":"adv","担心":"v","蛋糕":"n","当然":"adv","地":"part","地铁":"n","地图":"n","电梯":"n","东":"n","动物":"n","短":"adj","段":"mw","锻炼":"v","饿":"adj","耳朵":"n","发现":"v","方便":"adj","放":"v","放心":"v","分":"mw","附近":"n","复习":"v","干净":"adj","感冒":"n","感谢":"v","刚才":"adv","公里":"mw","公园":"n","故事":"n","刮风":"v","关":"v","关系":"n","关心":"v","过去":"n","还是":"conj","害怕":"v","花":"n","画":"v","坏":"adj","欢迎":"v","环境":"n","换":"v","黄":"adj","回答":"v","护照":"n","机会":"n","鸡":"n","记得":"v","季节":"n","检查":"v","简单":"adj","健康":"adj","见面":"v","讲":"v","教":"v","节":"mw","结婚":"v","节日":"n","解决":"v","借":"v","今年":"n","紧张":"adj","进行":"v","经常":"adv","经过":"v","经理":"n","决定":"v","开心":"adj","空调":"n","口":"n","哭":"v","裤子":"n","来不及":"v","来得及":"v","离开":"v","礼物":"n","脸":"n","练习":"v","聊天":"v","邻居":"n","留":"v","楼":"n","旅行":"v","绿":"adj","马上":"adv","满意":"adj","帽子":"n","面条":"n","明显":"adj","南":"n","年级":"n","年轻":"adj","爬山":"v","跑":"v","皮鞋":"n","瓶":"mw","骑":"v","奇怪":"adj","千万":"adv","清楚":"adj","请假":"v","球":"n","裙子":"n","然后":"conj","热情":"adj","认为":"v","日记":"n","容易":"adj","上网":"v","深":"adj","生气":"adj","声音":"n","世界":"n","瘦":"adj","树":"n","双":"mw","水平":"n","特别":"adv","提高":"v","体育":"n","甜":"adj","同意":"v","突然":"adv","图书馆":"n","腿":"n","忘":"v","为":"prep","为了":"prep","文化":"n","西":"n","希望":"v","习惯":"n","下面":"n","夏":"n","新闻":"n","辛苦":"adj","幸运":"adj","牙":"n","颜色":"n","要求":"v","也许":"adv","以后":"n","以前":"n","用":"v","有名":"adj","又":"adv","越":"adv","站":"n","着急":"adj","真":"adv","整理":"v","正":"adv","知识":"n","重要":"adj","周末":"n","注意":"v","最近":"adv","左边":"n","右边":"n","爱情":"n","安排":"v","包括":"v","保护":"v","报告":"n","保证":"v","背":"v","本来":"adv","毕业":"v","表示":"v","表演":"v","并且":"conj","不管":"conj","不仅":"conj","部分":"n","材料":"n","采用":"v","产品":"n","成功":"v","成为":"v","乘":"v","出发":"v","出现":"v","传统":"n","打折":"v","带":"v","当":"prep","导游":"n","道":"mw","的确":"adv","等等":"part","丢":"v","独立":"adj","发展":"v","方法":"n","方面":"n","分析":"v","风景":"n","否则":"conj","父母":"n","改变":"v","感情":"n","各种":"pron","根据":"prep","共同":"adj","鼓励":"v","固定":"adj","规定":"n","国际":"adj","过程":"n","后来":"adv","互相":"adv","获得":"v","基本":"adj","及时":"adv","积极":"adj","即使":"conj","技术":"n","既然":"conj","加班":"v","加油":"v","价格":"n","减少":"v","建议":"v","将来":"n","交流":"v","教育":"n","结果":"n","尽管":"conj","进步":"v","经济":"n","竟然":"adv","就是":"conj","举办":"v","聚会":"n","具体":"adj","坚持":"v","看法":"n","困难":"n","联系":"v","了不起":"adj","礼貌":"n","理解":"v","力量":"n","利用":"v","厉害":"adj","联系":"v","麻烦":"n","满足":"v","面试":"n","目标":"n","难道":"adv","难过":"adj","内容":"n","其实":"adv","培养":"v","碰到":"v","批评":"v","平时":"adv","普通":"adj","其次":"adv","其他":"pron","确实":"adv","热闹":"adj","认真":"adj","任何":"pron","任务":"n","如何":"pron","散步":"v","沙发":"n","上升":"v","社会":"n","甚至":"adv","生活":"n","实际":"adj","实现":"v","市场":"n","收入":"n","首先":"adv","顺利":"adj","说明":"v","随着":"prep","讨论":"v","态度":"n","提前":"v","通过":"prep","通知":"v","同情":"v","完成":"v","完全":"adv","万一":"conj","往往":"adv","微信":"n","问候":"v","无论":"conj","系统":"n","享受":"v","消息":"n","小心":"adj","新鲜":"adj","行":"v","性格":"n","幸福":"adj","休息":"v","许多":"adj","选":"v","严重":"adj","研究":"v","一定":"adv","一般":"adj","一直":"adv","依然":"adv","意思":"n","因此":"conj","引起":"v","应该":"v","影响":"v","优秀":"adj","由于":"prep","有时":"adv","于是":"conj","愉快":"adj","原来":"adv","原因":"n","赞成":"v","增加":"v","占":"v","照顾":"v","这样":"pron","整个":"adj","正式":"adj","支持":"v","值得":"v","中间":"n","主要":"adj","注意":"v","专业":"n","总是":"adv","尊重":"v","作为":"prep"};
+
+const HSK_POS_DISPLAY = {n:"noun",v:"verb",adj:"adj",adv:"adv",mw:"measure word",pron:"pronoun",prep:"prep",conj:"conj",part:"particle",num:"numeral",inter:"interjection"};
 
 // ==================== STATE ====================
 let vocab = []; // active vocabulary words (added to list)
@@ -535,8 +607,31 @@ document.querySelectorAll('.nav-tab').forEach(tab => {
 // Set initial active tab
 document.querySelector('.nav-tab[data-screen="upload"]').classList.add('active');
 
+
 // ==================== UPLOAD ====================
 const uploadZone = document.getElementById('uploadZone');
+const fileInput = document.getElementById('fileInput');
+
+const UPLOAD_ZONE_DEFAULT_HTML = `
+  <div class="upload-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+  <p>Drag screenshots here</p>
+  <p style="font-size:12px;color:var(--text3)">Drop images to extract vocabulary</p>
+`;
+
+function showUploadLoading() {
+  uploadZone.classList.add('processing');
+  uploadZone.innerHTML = `
+    <div class="shimmer-container">
+      <div class="shimmer"></div><div class="shimmer"></div><div class="shimmer"></div>
+    </div>
+    <div class="processing-text">Extracting Chinese text...</div>
+  `;
+}
+
+function resetUploadZone() {
+  uploadZone.classList.remove('processing');
+  uploadZone.innerHTML = UPLOAD_ZONE_DEFAULT_HTML;
+}
 
 function handleDragOver(e) {
   e.preventDefault();
@@ -550,14 +645,27 @@ function handleDragLeave(e) {
 function handleDrop(e) {
   e.preventDefault();
   uploadZone.classList.remove('drag-over');
+  // Real image file drop
+  if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+    const file = e.dataTransfer.files[0];
+    if (file.type.startsWith('image/')) { processImageFile(file); return; }
+  }
+  // Demo thumbnail drag (mock path)
   const id = e.dataTransfer.getData('text/plain');
-  if (!id) return;
-  processScreenshot(parseInt(id));
+  if (id) processScreenshot(parseInt(id));
 }
 
 uploadZone.addEventListener('dragover', handleDragOver);
 uploadZone.addEventListener('dragleave', handleDragLeave);
 uploadZone.addEventListener('drop', handleDrop);
+uploadZone.addEventListener('click', () => fileInput.click());
+
+fileInput.addEventListener('change', () => {
+  if (fileInput.files && fileInput.files[0]) {
+    processImageFile(fileInput.files[0]);
+    fileInput.value = '';
+  }
+});
 
 document.querySelectorAll('.screenshot-thumb').forEach(thumb => {
   thumb.addEventListener('dragstart', e => {
@@ -565,104 +673,348 @@ document.querySelectorAll('.screenshot-thumb').forEach(thumb => {
   });
 });
 
+// ---- Mock demo path (side-panel thumbnails) ----
 function processScreenshot(screenshotId) {
-  // Show loading
-  uploadZone.classList.add('processing');
-  uploadZone.innerHTML = `
-    <div class="shimmer-container">
-      <div class="shimmer"></div><div class="shimmer"></div><div class="shimmer"></div>
-    </div>
-    <div class="processing-text">Extracting Chinese text...</div>
-  `;
-
+  showUploadLoading();
   uploadedScreenshots.push(screenshotId);
-
   setTimeout(() => {
-    // Reset upload zone to compact
-    uploadZone.classList.remove('processing');
-    uploadZone.innerHTML = `
-      <div class="upload-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
-      <p>Drag screenshots here</p>
-      <p style="font-size:12px;color:var(--text3)">Drop images to extract vocabulary</p>
-    `;
-
-    // Show word selection
+    resetUploadZone();
     const wordIds = SCREENSHOT_WORDS[screenshotId] || [];
-    showWordSelection(wordIds);
+    const words = wordIds.map(id => getWord(id));
+    showWordSelection(words);
   }, 1800);
 }
 
-function showWordSelection(wordIds) {
-  const selectDiv = document.getElementById('wordSelect');
-  const newIds = wordIds.filter(id => !addedIds.has(id));
-  const alreadyIds = wordIds.filter(id => addedIds.has(id));
+// ---- Real OCR path (Tesseract.js + CEDICT) ----
+const wordCache = {};
 
-  if (newIds.length === 0) {
+async function processImageFile(file) {
+  showUploadLoading();
+  try {
+    const { text, ocrWords } = await runTesseractOCR(file);
+    // Filter to boxes that contain Chinese characters
+    const chineseBoxes = (ocrWords || []).filter(w =>
+      /[\u4e00-\u9fff]/.test(w.text) && w.confidence > 25
+    );
+    if (chineseBoxes.length === 0) {
+      resetUploadZone();
+      showToast('No Chinese words found in image');
+      return;
+    }
+    // More than 1 word → show annotation step
+    if (chineseBoxes.length > 1) {
+      uploadZone.style.display = 'none';
+      showImageAnnotation(file, chineseBoxes);
+    } else {
+      // Single word — skip straight to lookup
+      setProcessingText('Looking up vocabulary…');
+      const words = await extractVocabFromText(text);
+      resetUploadZone();
+      if (!words.length) { showToast('No Chinese words found'); return; }
+      showWordSelection(words);
+    }
+  } catch (err) {
+    resetUploadZone();
+    showToast('OCR failed: ' + (err.message || 'unknown error'));
+  }
+}
+
+function setProcessingText(msg) {
+  const el = document.querySelector('.processing-text');
+  if (el) el.textContent = msg;
+}
+
+async function runTesseractOCR(file) {
+  const worker = await Tesseract.createWorker('chi_sim', 1, {
+    logger: m => {
+      if (m.status === 'loading tesseract core') setProcessingText('Loading OCR engine…');
+      else if (m.status === 'loading language traineddata') setProcessingText('Loading Chinese model…');
+      else if (m.status === 'recognizing text') setProcessingText(`Recognizing text… ${Math.round(m.progress * 100)}%`);
+    }
+  });
+  const { data } = await worker.recognize(file);
+  await worker.terminate();
+  return { text: data.text, ocrWords: data.words };
+}
+
+function showImageAnnotation(file, ocrWords) {
+  const annotDiv = document.getElementById('imageAnnotation');
+  annotDiv.style.display = 'block';
+  const imageURL = URL.createObjectURL(file);
+  const selected = new Set();
+
+  annotDiv.innerHTML = `
+    <div class="annotation-header">
+      <span class="annotation-title">Draw circles around words to select them</span>
+    </div>
+
+    <div class="annotation-canvas-wrap" id="annotCanvasWrap" style="display:none"><canvas id="annotCanvas"></canvas></div>
+    <div class="annotation-actions">
+      <button class="btn btn-outline" id="btnAnnotClear">Clear</button>
+      <button class="btn btn-primary" id="btnAnnotConfirm" disabled>Continue →</button>
+    </div>
+  `;
+
+  const canvas = document.getElementById('annotCanvas');
+  const ctx = canvas.getContext('2d');
+  const img = new Image();
+
+  img.onload = () => {
+    canvas.width  = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    document.getElementById('annotCanvasWrap').style.display = '';
+
+    let drawing = false;
+    let livePath = [];   // points being drawn right now
+    let flashPath = null; // path fading out after lift
+
+    function redraw(extraAlpha) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+
+      // Draw selected word highlights
+      ocrWords.forEach((w, i) => {
+        if (!selected.has(i)) return;
+        ctx.fillStyle   = 'rgba(13,148,136,.30)';
+        ctx.strokeStyle = '#0D9488';
+        ctx.lineWidth   = Math.max(2, canvas.width * 0.003);
+        const r = 6;
+        const x = w.bbox.x0, y = w.bbox.y0,
+              wd = w.bbox.x1 - w.bbox.x0, ht = w.bbox.y1 - w.bbox.y0;
+        ctx.beginPath();
+        ctx.roundRect(x, y, wd, ht, r);
+        ctx.fill(); ctx.stroke();
+      });
+
+      // Draw the live path while user is drawing
+      function drawPath(pts, alpha) {
+        if (pts.length < 2) return;
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        pts.forEach(p => ctx.lineTo(p.x, p.y));
+        ctx.closePath();
+        ctx.strokeStyle = '#0D9488';
+        ctx.lineWidth   = Math.max(3, canvas.width * 0.004);
+        ctx.lineJoin    = 'round';
+        ctx.lineCap     = 'round';
+        ctx.setLineDash([]);
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(13,148,136,.12)';
+        ctx.fill();
+        ctx.restore();
+      }
+
+      if (livePath.length) drawPath(livePath, 1);
+      if (flashPath)       drawPath(flashPath.pts, flashPath.alpha);
+    }
+
+    function getXY(e) {
+      const rect = canvas.getBoundingClientRect();
+      const sx = canvas.width  / rect.width;
+      const sy = canvas.height / rect.height;
+      const src = e.touches ? e.touches[0] : e;
+      return { x: (src.clientX - rect.left) * sx, y: (src.clientY - rect.top) * sy };
+    }
+
+    function commitPath() {
+      if (livePath.length < 6) { livePath = []; redraw(); return; }
+      // Check which word centres fall inside the drawn shape
+      const p2d = new Path2D();
+      p2d.moveTo(livePath[0].x, livePath[0].y);
+      livePath.forEach(p => p2d.lineTo(p.x, p.y));
+      p2d.closePath();
+      let added = 0;
+      ocrWords.forEach((w, i) => {
+        const cx = (w.bbox.x0 + w.bbox.x1) / 2;
+        const cy = (w.bbox.y0 + w.bbox.y1) / 2;
+        if (ctx.isPointInPath(p2d, cx, cy)) { selected.add(i); added++; }
+      });
+      updateCount();
+      // Fade-out animation for the drawn circle
+      flashPath = { pts: [...livePath], alpha: 1 };
+      livePath = [];
+      const tick = () => {
+        flashPath.alpha -= 0.08;
+        if (flashPath.alpha <= 0) { flashPath = null; redraw(); return; }
+        redraw();
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    }
+
+    function updateCount() {
+      const n = selected.size;
+      const btn = document.getElementById('btnAnnotConfirm');
+      btn.disabled = n === 0;
+      btn.textContent = n > 0 ? `Continue →` : 'Continue →';
+    }
+
+    // Mouse
+    canvas.addEventListener('mousedown',  e => { drawing = true; livePath = [getXY(e)]; });
+    canvas.addEventListener('mousemove',  e => { if (!drawing) return; livePath.push(getXY(e)); redraw(); });
+    canvas.addEventListener('mouseup',    e => { if (!drawing) return; drawing = false; commitPath(); });
+    canvas.addEventListener('mouseleave', e => { if (!drawing) return; drawing = false; commitPath(); });
+
+    // Touch
+    canvas.addEventListener('touchstart', e => { e.preventDefault(); drawing = true; livePath = [getXY(e)]; }, { passive: false });
+    canvas.addEventListener('touchmove',  e => { e.preventDefault(); if (!drawing) return; livePath.push(getXY(e)); redraw(); }, { passive: false });
+    canvas.addEventListener('touchend',   e => { e.preventDefault(); if (!drawing) return; drawing = false; commitPath(); }, { passive: false });
+
+    // Clear
+    document.getElementById('btnAnnotClear').addEventListener('click', () => {
+      selected.clear(); livePath = []; flashPath = null; redraw(); updateCount();
+    });
+
+    // Confirm
+    document.getElementById('btnAnnotConfirm').addEventListener('click', async () => {
+      const btn = document.getElementById('btnAnnotConfirm');
+      btn.textContent = 'Looking up…'; btn.disabled = true;
+      const texts = ocrWords.filter((_, i) => selected.has(i)).map(w => w.text);
+      try {
+        const vocabWords = await extractVocabFromTexts(texts);
+        annotDiv.style.display = 'none'; annotDiv.innerHTML = '';
+        uploadZone.style.display = '';
+        URL.revokeObjectURL(imageURL);
+        if (!vocabWords.length) { showToast('No words found in dictionary'); return; }
+        showWordSelection(vocabWords);
+      } catch {
+        annotDiv.style.display = 'none'; uploadZone.style.display = '';
+        URL.revokeObjectURL(imageURL); showToast('Lookup failed');
+      }
+    });
+
+    redraw();
+  };
+
+  img.src = imageURL;
+}
+
+async function extractVocabFromText(rawText) {
+  const sequences = [...new Set(rawText.match(/[\u4e00-\u9fff]+/g) || [])];
+  return extractVocabFromTexts(sequences);
+}
+
+async function extractVocabFromTexts(texts) {
+  const seen = new Set();
+  const words = [];
+  for (const seq of texts) {
+    const segmented = await segmentChinese(seq);
+    for (const zh of segmented) {
+      if (seen.has(zh)) continue;
+      seen.add(zh);
+      const w = await lookupWordCEDICT(zh);
+      if (w) words.push(w);
+    }
+  }
+  return words;
+}
+
+async function segmentChinese(text) {
+  const result = [];
+  // Collect every valid CEDICT entry at every position (lengths 1-4)
+  // so 好看 → [好, 好看, 看] instead of just [好看]
+  for (let i = 0; i < text.length; i++) {
+    for (let len = 1; len <= Math.min(4, text.length - i); len++) {
+      const candidate = text.substr(i, len);
+      const w = await lookupWordCEDICT(candidate);
+      if (w) result.push(candidate);
+    }
+  }
+  return [...new Set(result)];
+}
+
+async function lookupWordCEDICT(zh) {
+  if (zh in wordCache) return wordCache[zh];
+  try {
+    const url = `https://cdn.jsdelivr.net/gh/krmanik/cedict-json/v2/${encodeURIComponent(zh)}.json`;
+    const res = await fetch(url);
+    if (!res.ok) { wordCache[zh] = null; return null; }
+    const data = await res.json();
+    if (!data.definitions) { wordCache[zh] = null; return null; }
+    const entries = Object.entries(data.definitions);
+    if (!entries.length) { wordCache[zh] = null; return null; }
+    // Sort by number of definitions — more definitions = more common usage (same logic as fetchDictionary)
+    entries.sort((a, b) => b[1].split(';').length - a[1].split(';').length);
+    const [pinyin, defStr] = entries[0];
+    const py = pinyinToTones(pinyin);
+    const defs = defStr.split(';').map(s => s.trim())
+      .filter(s => s.length > 1 && !s.startsWith('CL:') && !s.startsWith('see ') && !s.startsWith('variant of'));
+    if (!defs.length) { wordCache[zh] = null; return null; }
+    const hskPos = HSK_POS[zh] || null;
+    const word = { zh, py, en: defs[0], pos: hskPos || 'other', ex: [] };
+    wordCache[zh] = word;
+    return word;
+  } catch { wordCache[zh] = null; return null; }
+}
+
+// ---- Word selection UI (works with word objects from both paths) ----
+function showWordSelection(words) {
+  const selectDiv = document.getElementById('wordSelect');
+  const newWords = words.filter(w => !addedIds.has(w.zh));
+  const alreadyWords = words.filter(w => addedIds.has(w.zh));
+
+  if (newWords.length === 0) {
     showToast('No new words found');
     selectDiv.style.display = 'none';
     return;
   }
 
-  // Track selected state
-  const selected = new Set(newIds);
+  const selected = new Set(newWords.map(w => w.zh));
 
   function render() {
-    const chipsHtml = wordIds.map(wid => {
-      const w = getWord(wid);
-      if (alreadyIds.includes(wid)) {
-        return `<div class="word-chip already-added" title="Already added">
+    const chipsHtml = [
+      ...alreadyWords.map(w => `
+        <div class="word-chip already-added" title="Already added">
           <span class="word-chip-zh">${w.zh}</span>
           <span class="word-chip-en">${w.en} ✓</span>
-        </div>`;
-      }
-      const sel = selected.has(wid);
-      return `<div class="word-chip ${sel ? '' : 'deselected'}" data-wid="${wid}">
-        <span class="word-chip-zh">${w.zh}</span>
-        <span class="word-chip-en">${w.en}</span>
-      </div>`;
-    }).join('');
+        </div>`),
+      ...newWords.map(w => `
+        <div class="word-chip ${selected.has(w.zh) ? '' : 'deselected'}" data-zh="${w.zh}">
+          <span class="word-chip-zh">${w.zh}</span>
+          <span class="word-chip-en">${w.en}</span>
+        </div>`)
+    ].join('');
 
     selectDiv.innerHTML = `
       <h4>Words found — tap to deselect</h4>
-      <p>${selected.size} of ${newIds.length} new words selected</p>
+      <p>${selected.size} of ${newWords.length} new words selected</p>
       <div class="word-chips">${chipsHtml}</div>
       <div class="word-select-actions">
+        <button class="btn btn-outline" id="btnSkipAll">Unselect all</button>
         <button class="btn btn-primary" id="btnAddSelected">Add Selected (${selected.size})</button>
-        <button class="btn btn-outline" id="btnSkipAll">Skip</button>
       </div>
     `;
 
-    // Toggle chips
-    selectDiv.querySelectorAll('.word-chip[data-wid]').forEach(chip => {
+    selectDiv.querySelectorAll('.word-chip[data-zh]').forEach(chip => {
       chip.addEventListener('click', () => {
-        const wid = parseInt(chip.dataset.wid);
-        if (selected.has(wid)) selected.delete(wid);
-        else selected.add(wid);
+        const zh = chip.dataset.zh;
+        if (selected.has(zh)) selected.delete(zh); else selected.add(zh);
         render();
       });
     });
 
-    // Add selected
     document.getElementById('btnAddSelected').addEventListener('click', () => {
       let count = 0;
-      selected.forEach(wid => {
-        if (!addedIds.has(wid)) {
-          addedIds.add(wid);
-          const w = {...getWord(wid)};
-          w.added = ++addOrder;
-          vocab.push(w);
+      newWords.forEach(w => {
+        if (selected.has(w.zh) && !addedIds.has(w.zh)) {
+          addedIds.add(w.zh);
+          vocab.push({
+            id: Date.now() + count,
+            zh: w.zh, py: w.py || '', en: w.en, pos: w.pos || 'other',
+            starred: false, wrong: 0, added: ++addOrder, ex: w.ex || []
+          });
           count++;
         }
       });
       selectDiv.style.display = 'none';
-      if (count > 0) showToast(`Added ${count} new words!`);
+      if (count > 0) showToast(`Added ${count} new word${count > 1 ? 's' : ''}!`);
       else showToast('No words added');
     });
 
-    // Skip
     document.getElementById('btnSkipAll').addEventListener('click', () => {
-      selectDiv.style.display = 'none';
-      showToast('Skipped');
+      selected.clear(); render();
     });
   }
 
@@ -673,6 +1025,10 @@ function showWordSelection(wordIds) {
 // ==================== VOCABULARY LIST ====================
 const vocabList = document.getElementById('vocabList');
 const searchInput = document.getElementById('searchInput');
+
+document.getElementById('meaningToggleInput').addEventListener('change', (e) => {
+  document.getElementById('vocabList').classList.toggle('meaning-hidden', !e.target.checked);
+});
 
 document.getElementById('searchToggle').addEventListener('click', () => {
   searchVisible = !searchVisible;
@@ -699,6 +1055,145 @@ document.querySelectorAll('#vocabControls .chip').forEach(chip => {
     renderVocabList();
   });
 });
+
+// ==================== DICTIONARY ====================
+const dictCache = {};
+
+// Convert numbered pinyin (xue2 sheng5) to tone-marked (xuésheng)
+function pinyinToTones(p) {
+  const MAP = {
+    a:['ā','á','ǎ','à'], e:['ē','é','ě','è'], i:['ī','í','ǐ','ì'],
+    o:['ō','ó','ǒ','ò'], u:['ū','ú','ǔ','ù'], v:['ǖ','ǘ','ǚ','ǜ'], ü:['ǖ','ǘ','ǚ','ǜ']
+  };
+  return p.split(' ').map(syl => {
+    const t = parseInt(syl.slice(-1));
+    if (!t || t < 1 || t > 5) return syl;
+    const base = syl.slice(0, -1);
+    if (t === 5) return base;
+    let idx = -1;
+    if (base.includes('a') || base.includes('e')) {
+      idx = Math.max(base.lastIndexOf('a'), base.lastIndexOf('e'));
+    } else if (base.includes('ou')) {
+      idx = base.indexOf('o');
+    } else {
+      for (let i = base.length - 1; i >= 0; i--) {
+        if ('aeiouüv'.includes(base[i])) { idx = i; break; }
+      }
+    }
+    if (idx < 0) return base;
+    const marked = MAP[base[idx]]?.[t - 1];
+    return marked ? base.slice(0, idx) + marked + base.slice(idx + 1) : base;
+  }).join('');
+}
+
+
+const exampleCache = {};
+async function fetchExamples(zh) {
+  if (zh in exampleCache) return exampleCache[zh];
+  try {
+    const base = `https://tatoeba.org/api_v0/search?from=cmn&to=eng&query=${encodeURIComponent(zh)}&limit=20`;
+    const res = await fetch(`https://corsproxy.io/?${base}`);
+    if (!res.ok) { exampleCache[zh] = null; return null; }
+    const data = await res.json();
+    const results = (data.results || []).flatMap(r => {
+      const enTrans = (r.translations || []).flat().find(t => t.lang === 'eng');
+      if (!enTrans) return [];
+      return [{ zh: r.text, en: enTrans.text }];
+    });
+    exampleCache[zh] = results.length ? results : null;
+    return exampleCache[zh];
+  } catch { exampleCache[zh] = null; return null; }
+}
+
+// Match a pool of example sentences to definition strings, one per definition.
+// Uses keyword overlap between the definition's English text and each sentence's English translation.
+const EX_STOP = new Set('a,an,the,of,to,in,on,at,is,be,are,was,were,has,have,had,do,does,did,it,its,and,or,but,for,with,by,from,as,used,form,that,this,which,when,what,how,they,their,there'.split(','));
+function matchExamplesToDefs(defs, examples) {
+  const used = new Set();
+  return defs.map(def => {
+    const words = def.toLowerCase().replace(/[^a-z\s]/g, '').split(/\s+/)
+      .filter(w => w.length > 3 && !EX_STOP.has(w));
+    if (!words.length) return null;
+    let best = null, bestScore = -1;
+    examples.forEach((ex, idx) => {
+      if (used.has(idx)) return;
+      const score = words.filter(w => ex.en.toLowerCase().includes(w)).length;
+      if (score > bestScore) { bestScore = score; best = idx; }
+    });
+    if (best !== null && bestScore > 0) { used.add(best); return examples[best]; }
+    // Fallback: first unused example
+    const fallback = examples.findIndex((_, idx) => !used.has(idx));
+    if (fallback !== -1) { used.add(fallback); return examples[fallback]; }
+    return null;
+  });
+}
+
+function fetchDictionary(zh) {
+  if (zh in dictCache) return dictCache[zh];
+  const promise = (async () => {
+    try {
+      const url = `https://cdn.jsdelivr.net/gh/krmanik/cedict-json/v2/${encodeURIComponent(zh)}.json`;
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (!data.definitions) return null;
+
+      let entries = Object.entries(data.definitions).map(([pinyin, defStr]) => {
+        const definitions = defStr.split(';')
+          .map(d => d.trim())
+          .filter(d => d.length > 1 && !d.startsWith('CL:') && !d.startsWith('see ') && !d.startsWith('variant of') && !d.startsWith('abbr. for') && !d.startsWith('abbr. of') && !d.startsWith('Taiwan pr.'));
+        return definitions.length ? { pinyin, partOfSpeech: pinyinToTones(pinyin), definitions } : null;
+      }).filter(Boolean);
+
+      if (!entries.length) return null;
+      // Most common pronunciation first (more definitions = more common usage)
+      entries.sort((a, b) => b.definitions.length - a.definitions.length);
+      // If a lowercase (common) entry exists, drop capitalized-only (proper noun) entries
+      const hasCommon = entries.some(e => e.pinyin[0] === e.pinyin[0].toLowerCase());
+      if (hasCommon) entries = entries.filter(e => e.pinyin[0] === e.pinyin[0].toLowerCase());
+      // Single pronunciation — no need to label it (card header already shows pinyin)
+      if (entries.length === 1) entries[0].partOfSpeech = null;
+      return entries;
+    } catch(e) { return null; }
+  })();
+  dictCache[zh] = promise;
+  return promise;
+}
+
+function defPOS(zh, d) {
+  const l = d.toLowerCase().trim().replace(/^\([^)]*\)\s*/, '');
+
+  // 1. Per-definition text signals — highly reliable
+  if (/\bmeasure word\b/.test(l)) return 'mw';
+  if (/^to\s/.test(l)) return 'v';
+
+  // 2. HSK word-level lookup — curated, accurate
+  const hskCode = HSK_POS[zh];
+  if (hskCode) return hskCode;
+
+  // 3. Unknown — show nothing rather than guess wrong
+  return null;
+}
+
+function renderDictEntries(entries, zh, examplesPerDef) {
+  if (!entries || !entries.length) return '';
+  let globalDefIdx = 0;
+  return entries.map((entry, entryIdx) => {
+    const badge = entry.partOfSpeech
+      ? `<span class="dict-pos-badge">${entry.partOfSpeech}</span>` : '';
+    const lookupZh = entryIdx === 0 ? (zh || '') : '';
+    const defs = entry.definitions.map((d, i) => {
+      const pos = defPOS(lookupZh, d);
+      const posLabel = pos ? (HSK_POS_DISPLAY[pos] || pos) : null;
+      const posChip = posLabel ? `<span class="dict-def-pos pos-${pos}">${posLabel}</span>` : '';
+      const ex = examplesPerDef ? examplesPerDef[globalDefIdx] : null;
+      globalDefIdx++;
+      const exHtml = ex ? `<div class="def-example"><span class="def-ex-zh">${ex.zh}</span><span class="def-ex-en">${ex.en}</span></div>` : '';
+      return `<div class="dict-def"><span class="dict-def-num">${i+1}.</span>${posChip}${d}${exHtml}</div>`;
+    }).join('');
+    return `<div class="dict-entry">${badge}${defs}</div>`;
+  }).join('');
+}
 
 function getFilteredVocab() {
   let list = [...vocab];
@@ -730,28 +1225,14 @@ function renderVocabList() {
         <div class="vocab-info">
           <div class="vocab-pinyin">${w.py}</div>
           <div class="vocab-english">${w.en}</div>
-          <div class="vocab-card-meta">
-            <span class="pos-chip ${posClass}">${w.pos}</span>
-            ${w.wrong > 0 ? `<span class="wrong-badge">✗ ${w.wrong}</span>` : ''}
-          </div>
         </div>
         <div class="card-actions">
-          <button class="audio-btn" data-zh="${w.zh}" onclick="event.stopPropagation();speak('${w.zh}')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg></button>
-          <button class="star-btn ${w.starred?'starred':''}" data-id="${w.id}" onclick="event.stopPropagation();toggleStar(${w.id})">
-            ${w.starred ? '⭐' : '☆'}
-          </button>
+          <button class="audio-btn" data-zh="${w.zh}" onclick="event.stopPropagation();speak('${w.zh}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg></button>
         </div>
       </div>
       <div class="vocab-detail">
         <div class="detail-content">
-          <h5 style="font-size:12px;color:var(--text2);margin-bottom:8px">Example Sentences</h5>
-          ${w.ex.map(e => `
-            <div class="example-sentence">
-              <div class="example-zh">${e.zh}</div>
-              <div class="example-py">${e.py}</div>
-              <div class="example-en">${e.en}</div>
-            </div>
-          `).join('')}
+          <div class="dict-section" data-zh="${w.zh}"></div>
           <button class="btn-remove" onclick="event.stopPropagation();removeWord(${w.id})">Remove from list</button>
           ${related.length > 0 ? `
             <div class="related-section">
@@ -766,10 +1247,33 @@ function renderVocabList() {
     </div>`;
   }).join('');
 
-  // Expand on click
+  // Expand on click — fetch dictionary + examples in parallel, render inline
   vocabList.querySelectorAll('.vocab-card').forEach(card => {
-    card.addEventListener('click', () => {
+    card.addEventListener('click', async () => {
       card.classList.toggle('expanded');
+      if (!card.classList.contains('expanded')) return;
+
+      const dictEl = card.querySelector('.dict-section');
+      if (!dictEl || dictEl.dataset.loaded) return;
+      dictEl.dataset.loaded = 'true';
+      const zh = dictEl.dataset.zh;
+      dictEl.innerHTML = '<div class="dict-loading"><span class="dict-spinner"></span>Loading…</div>';
+
+      // Fetch dictionary and examples in parallel
+      const [entries, examples] = await Promise.all([
+        fetchDictionary(zh),
+        fetchExamples(zh)
+      ]);
+
+      // Match one example sentence per definition
+      let examplesPerDef = null;
+      if (entries && examples) {
+        const allDefs = entries.flatMap(e => e.definitions);
+        examplesPerDef = matchExamplesToDefs(allDefs, examples);
+      }
+
+      const rendered = renderDictEntries(entries, zh, examplesPerDef);
+      dictEl.innerHTML = rendered || `<div class="dict-fallback">${zh}: ${card.querySelector('.vocab-english').textContent}</div>`;
     });
   });
 }
@@ -780,8 +1284,9 @@ window.toggleStar = function(id) {
 };
 
 window.removeWord = function(id) {
+  const w = vocab.find(v => v.id === id);
+  if (w) addedIds.delete(w.zh);
   vocab = vocab.filter(v => v.id !== id);
-  addedIds.delete(id);
   renderVocabList();
   showToast('Word removed');
 };
@@ -817,7 +1322,7 @@ function buildDeck() {
   if (fcMode === 'recent') pool.sort((a,b) => b.added - a.added);
   else if (fcMode === 'wrong') pool.sort((a,b) => b.wrong - a.wrong);
   else shuffle(pool);
-  return pool.slice(0, 10);
+  return pool.slice(0, 10).map(w => ({ ...w, mode: Math.random() < 0.5 ? 'zh' : 'en' }));
 }
 
 function shuffle(arr) {
@@ -844,28 +1349,60 @@ function startFlashcards(wrongOnly) {
   document.getElementById('fcStart').style.display = 'none';
   document.getElementById('fcResults').style.display = 'none';
   document.getElementById('fcPlay').style.display = 'block';
+  document.getElementById('fcCloseBtn').style.display = '';
   showCard();
 }
 
 function showCard() {
   fcFlipped = false; fcAnswered = false;
   const w = fcDeck[fcIndex];
-  document.getElementById('fcWord').textContent = w.zh;
+  const mode = w.mode || 'zh';
+  const card = document.getElementById('fcCard');
+  card.dataset.mode = mode;
+  card.classList.remove('flipped');
+
+  // Front face
+  if (mode === 'zh') {
+    document.getElementById('fcWord').textContent = w.zh;
+  } else {
+    document.getElementById('fcWord').textContent = w.en;
+  }
+
+  // Back face — common
   document.getElementById('fcPinyin').textContent = w.py;
-  document.getElementById('fcMeaning').textContent = w.en;
-  document.getElementById('fcPos').innerHTML = `<span class="pos-chip ${getPosClass(w.pos)}">${w.pos}</span>`;
-  document.getElementById('fcExample').textContent = w.ex[0].zh + ' — ' + w.ex[0].en;
-  document.getElementById('fcBanner').textContent = '';
+  document.getElementById('fcBanner').innerHTML = '';
   document.getElementById('fcBanner').className = 'fc-result-banner';
-  document.getElementById('fcCard').classList.remove('flipped');
-  document.getElementById('btnKnow').style.display = '';
-  document.getElementById('btnPass').style.display = '';
-  document.getElementById('btnNext').style.display = 'none';
+  const ex = w.ex?.[0];
+  document.getElementById('fcExample').innerHTML = ex
+    ? `<div class="fc-ex-zh">${ex.zh}</div><div class="fc-ex-en">${ex.en}</div>` : '';
+
+  if (mode === 'zh') {
+    // Back: meanings + pos + example
+    document.getElementById('fcZhAnswer').style.display = 'none';
+    document.getElementById('fcMeanings').textContent = w.en;
+    document.getElementById('fcPos').style.display = '';
+    document.getElementById('fcPos').innerHTML = `<span class="pos-chip ${getPosClass(w.pos)}">${w.pos || ''}</span>`;
+    fetchDictionary(w.zh).then(entries => {
+      if (!entries || fcDeck[fcIndex]?.id !== w.id) return;
+      const defs = entries.flatMap(e => e.definitions).slice(0, 4);
+      document.getElementById('fcMeanings').innerHTML = defs.map((d, i) =>
+        `<div><span class="def-num">${i + 1}.</span>${d}</div>`).join('');
+    });
+  } else {
+    // Back: big Chinese + pinyin (audio already in row) + example
+    document.getElementById('fcZhAnswer').style.display = '';
+    document.getElementById('fcZhAnswer').textContent = w.zh;
+    document.getElementById('fcMeanings').innerHTML = '';
+    document.getElementById('fcPos').style.display = 'none';
+  }
+
+  // Progress
   document.getElementById('fcProgressText').textContent = `${fcIndex + 1} / ${fcDeck.length}`;
-  document.getElementById('fcProgressFill').style.width = `${((fcIndex) / fcDeck.length) * 100}%`;
-  // Hide nav buttons until card is answered
+  document.getElementById('fcProgressFill').style.width = `${(fcIndex / fcDeck.length) * 100}%`;
   document.getElementById('fcNavCounter').textContent = `${fcIndex + 1} / ${fcDeck.length}`;
   document.querySelector('.fc-nav').style.display = 'none';
+  document.getElementById('btnKnow').style.display = '';
+  document.getElementById('btnPass').style.display = '';
 }
 
 document.getElementById('fcAudio').addEventListener('click', (e) => {
@@ -884,27 +1421,28 @@ document.getElementById('btnPrev').addEventListener('click', () => {
 
 document.getElementById('btnSkipNext').addEventListener('click', () => {
   if (fcIndex < fcDeck.length - 1) { fcIndex++; showCard(); }
+  else if (fcAnswered) { showResults(); }
 });
 
 document.getElementById('btnKnow').addEventListener('click', () => answerCard(true));
 document.getElementById('btnPass').addEventListener('click', () => answerCard(false));
-document.getElementById('btnNext').addEventListener('click', nextCard);
+document.getElementById('fcCloseBtn').addEventListener('click', () => switchScreen('vocab'));
 
 function answerCard(correct) {
   if (fcAnswered) return;
   fcAnswered = true;
   const w = fcDeck[fcIndex];
+  const banner = document.getElementById('fcBanner');
   if (correct) {
     fcCorrect++;
-    document.getElementById('fcBanner').textContent = 'Correct! ✓';
-    document.getElementById('fcBanner').className = 'fc-result-banner fc-result-correct';
+    banner.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+    banner.className = 'fc-result-banner fc-result-correct';
   } else {
-    // Update wrong count
     const vw = vocab.find(v => v.id === w.id);
     if (vw) vw.wrong++;
     fcWrongList.push(w);
-    document.getElementById('fcBanner').textContent = 'Keep practicing ✗';
-    document.getElementById('fcBanner').className = 'fc-result-banner fc-result-wrong';
+    banner.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+    banner.className = 'fc-result-banner fc-result-wrong';
   }
   // Flip card
   document.getElementById('fcCard').classList.add('flipped');
@@ -914,11 +1452,7 @@ function answerCard(correct) {
   const nav = document.querySelector('.fc-nav');
   nav.style.display = 'flex';
   document.getElementById('btnPrev').disabled = (fcIndex === 0);
-  document.getElementById('btnSkipNext').disabled = (fcIndex >= fcDeck.length - 1);
-  const isLast = (fcIndex >= fcDeck.length - 1);
-  const btnNext = document.getElementById('btnNext');
-  btnNext.style.display = '';
-  btnNext.textContent = isLast ? 'See Results ✓' : 'Next →';
+  document.getElementById('btnSkipNext').disabled = false;
 }
 
 function nextCard() {
@@ -932,6 +1466,7 @@ function nextCard() {
 
 function showResults() {
   document.getElementById('fcPlay').style.display = 'none';
+  document.getElementById('fcCloseBtn').style.display = 'none';
   const total = fcDeck.length;
   const pct = Math.round((fcCorrect / total) * 100);
   const circumference = 2 * Math.PI * 45;
